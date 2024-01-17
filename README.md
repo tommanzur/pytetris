@@ -11,7 +11,6 @@ This repository contains a simple implementation of the classic Tetris game usin
 - [Controls](#controls)
 - [Features](#features)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Installation
 

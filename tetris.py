@@ -11,25 +11,6 @@ TILE_SIZE = 30
 LEVEL_SPEEDS = [800, 600, 450, 300, 200]  # Speeds for each level
 LINES_PER_LEVEL = 10
 
-def remove_empty_columns(arr, _x_offset=0, _keep_counting=True):
-    """
-    Remove empty columns from arr (i.e. those filled with zeros).
-    The return value is (new_arr, x_offset), where x_offset is how
-    much the x coordinate needs to be increased to maintain
-    the block's original position.
-    """
-    for colid, col in enumerate(arr.T):
-        if col.max() == 0:
-            if _keep_counting:
-                _x_offset += 1
-            # Remove the current column and try again.
-            arr, _x_offset = remove_empty_columns(
-                np.delete(arr, colid, 1), _x_offset, _keep_counting)
-            break
-        else:
-            _keep_counting = False
-    return arr, _x_offset
-
 class BottomReached(Exception):
     """Exception raised when a block reaches the bottom."""
     pass
@@ -50,7 +31,7 @@ class Block(pygame.sprite.Sprite):
         "LBlock": (255, 127, 0),       # Orange
         "ZBlock": (255, 0, 0),         # Red
         "ReverseLBlock": (0, 0, 255),  # Blue
-        "ReverseZBlock": (0, 255, 0)    # Green
+        "ReverseZBlock": (0, 255, 0)   # Green
     }
 
     @staticmethod
@@ -74,9 +55,11 @@ class Block(pygame.sprite.Sprite):
         super().__init__()
         self.current = True
         self.struct = np.array(self.struct)
+
         # Get the color associated with the block type
         class_name = re.search(r"<class '__main__\.([^']+)'>", str(type(self))).group(1)
         self.color = Block.COLORS[class_name]
+
         # Initial random rotation and flip.
         if random.randint(0, 1):
             self.struct = np.rot90(self.struct)
@@ -357,7 +340,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
                     if block.struct.any():
                         # Once removed, check if we have empty columns
                         # since they need to be dropped.
-                        block.struct, x_offset = remove_empty_columns(block.struct)
+                        block.struct, x_offset = del_empty_columns(block.struct)
                         # Compensate the space gone with the columns to
                         # keep the block's original position.
                         block.x += x_offset
@@ -451,7 +434,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
             self._create_new_block()
         else:
             self.update_grid()
-    
+
     def move_current_block(self):
         """Move the current block based on the user's input."""
         if self._current_block_movement_heading is None:
@@ -488,6 +471,24 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
             self.current_block.rotate(self)
             self.update_grid()
 
+def del_empty_columns(arr, _x_offset=0, _keep_counting=True):
+    """
+    Remove empty columns from arr (i.e. those filled with zeros).
+    The return value is (new_arr, x_offset), where x_offset is how
+    much the x coordinate needs to be increased to maintain
+    the block's original position.
+    """
+    for colid, col in enumerate(arr.T):
+        if col.max() == 0:
+            if _keep_counting:
+                _x_offset += 1
+            # Remove the current column and try again.
+            arr, _x_offset = del_empty_columns(
+                np.delete(arr, colid, 1), _x_offset, _keep_counting)
+            break
+        else:
+            _keep_counting = False
+    return arr, _x_offset
 
 def draw_grid(background):
     """Draw the background grid on the given surface."""
@@ -503,11 +504,9 @@ def draw_grid(background):
             background, grid_color, (0, y), (GRID_WIDTH, y)
         )
 
-
 def draw_centered_surface(screen, surface, y):
     """Draw a surface centered on the screen at the specified y-coordinate."""
     screen.blit(surface, (400 - surface.get_width() / 2, y))
-
 
 def main():
     """Initialize and run the Tetris game."""
